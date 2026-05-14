@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UNI-Versity | Student Dashboard</title>
+<link rel="stylesheet" href="/css/global.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="app-layout">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="auth-logo-placeholder" style="width:36px;height:36px;font-size:1rem;border-radius:10px;background:linear-gradient(135deg,#6C3CE1,#A78BFA);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;">U</div>
+      <div class="brand">UNI<span style="color:#A78BFA">–</span>Versity</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" href="/student/dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a class="nav-item" href="/student/journal.html"><span class="nav-icon">📓</span> Daily Journal</a>
+      <a class="nav-item" href="/student/performance.html"><span class="nav-icon">📊</span> Performance</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar-placeholder" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="name" id="sidebar-name">Loading...</div>
+          <div class="role">OJT Student</div>
+        </div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm" style="margin-top:.75rem;">🚪 Log Out</button>
+    </div>
+  </aside>
+
+
+  <main class="main-content">
+    <button class="hamburger" id="hamburger">☰</button>
+
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>Dashboard</h1>
+        <p>Welcome back! Here's your OJT overview.</p>
+      </div>
+      <div class="topbar-right"><button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">??</span></button><div id="datetime-display" class="datetime-badge"></div></div>
+    </div>
+
+
+    <div class="quote-banner mb-3">
+      <span class="quote-icon">💡</span>
+      <p id="quote-text" class="quote-text">Loading motivational quote...</p>
+    </div>
+
+
+    <div class="grid-2 mb-3">
+      <div class="card fade-in">
+        <div class="card-header">
+          <div><div class="card-title">OJT Progress</div><div class="card-subtitle" id="prog-label">0 / 0 hours</div></div>
+          <div id="prog-badge" class="badge badge-success">Active</div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Completed</span><span id="prog-pct">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="card fade-in fade-in-delay">
+        <div class="card-title mb-1">Today</div>
+        <div class="card-subtitle" id="today-date">—</div>
+        <div style="margin-top:1rem;display:flex;flex-direction:column;gap:.5rem;">
+          <div id="clock-status" style="font-size:.85rem;color:var(--text-muted);">Checking status...</div>
+          <div id="geo-status-wrap" style="display:none;align-items:center;gap:.5rem;padding:.5rem;border-radius:6px;font-size:.8rem;background:var(--bg-card);border:1px solid var(--border-light);">
+            <span id="geo-icon">📍</span><span id="geo-text">Checking location...</span>
+          </div>
+          <button id="btn-clock" class="btn btn-primary btn-full" onclick="handleClockAction()">⏱ Clock In</button>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="modal-overlay" id="modal-webcam">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">📷 Take Clock-In Photo</div>
+          <div class="modal-close" onclick="closeModal('modal-webcam');stopWebcam()">✕</div>
+        </div>
+        <div class="webcam-wrap" id="webcam-wrap">
+          <video id="webcam-video" autoplay playsinline></video>
+          <canvas id="webcam-canvas" style="display:none;"></canvas>
+          <div class="webcam-overlay"><div class="webcam-frame"></div></div>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:.75rem;">
+          <button class="btn btn-primary btn-full" onclick="captureAndClockIn()">📸 Capture & Clock In</button>
+          <button class="btn btn-secondary" onclick="closeModal('modal-webcam');stopWebcam()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="card fade-in">
+      <div class="card-header">
+        <div class="card-title">📋 Attendance Logs</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th><th>Journal</th></tr></thead>
+          <tbody id="attendance-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+let clockedIn = false, clockedOut = false;
+let webcamStream = null;
+let capturedPhoto = null;
+
+let officeLocation = null;
+let currentGeoLat = null;
+let currentGeoLng = null;
+let currentGeoAcc = null;
+
+async function loadDashboard() {
+  const profile = await api.get('/api/student/profile');
+  if (!profile) return;
+  document.getElementById('sidebar-name').textContent = profile.name;
+  if (profile.photo) {
+    document.getElementById('sidebar-avatar').outerHTML = `<img src="/uploads/${profile.photo}" class="avatar" alt="Profile"/>`;
+  } else {
+    document.getElementById('sidebar-avatar').textContent = getInitials(profile.name);
+  }
+  document.getElementById('prog-label').textContent = `${formatHours(profile.completedHours)} / ${formatHours(profile.requiredHours)} hours`;
+  document.getElementById('prog-pct').textContent = Math.round(profile.progress) + '%';
+  document.getElementById('prog-badge').innerHTML = getStatusBadge(profile.status);
+  animateProgressBar(document.getElementById('progress-fill'), profile.progress);
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-PH', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const status = await api.get('/api/student/attendance-status');
+  if (!status) return;
+  clockedIn  = status.clockedIn;
+  clockedOut = status.clockedOut;
+  updateClockButton();
+
+  if (status.incompleteJournal?.hasIncomplete) {
+    showToast(`📓 Please complete your journal for ${status.incompleteJournal.entryDate} first!`, 'warning', 6000);
+  }
+  loadAttendanceLogs();
+}
+
+function updateClockButton() {
+  const btn = document.getElementById('btn-clock');
+  const statusEl = document.getElementById('clock-status');
+  if (clockedOut) {
+    btn.textContent = '✅ Done for Today'; btn.disabled = true;
+    statusEl.textContent = 'You have completed attendance for today.';
+  } else if (clockedIn) {
+    btn.textContent = '🚪 Clock Out'; btn.classList.replace('btn-primary','btn-warning');
+    statusEl.innerHTML = '<span style="color:var(--success)">● Clocked In</span> — Remember to clock out!';
+  } else {
+    btn.textContent = '⏱ Clock In'; btn.classList.add('btn-primary');
+    statusEl.textContent = 'You have not clocked in yet today.';
+  }
+}
+
+async function handleClockAction() {
+  if (!clockedIn) {
+    const geoWrap = document.getElementById('geo-status-wrap');
+    const geoIcon = document.getElementById('geo-icon');
+    const geoText = document.getElementById('geo-text');
+    const btn = document.getElementById('btn-clock');
+    
+    geoWrap.style.display = 'flex';
+    geoIcon.textContent = '⏳';
+    geoText.textContent = 'Requesting location...';
+    btn.disabled = true;
+
+    try {
+      officeLocation = await api.get('/api/student/office-location?t=' + new Date().getTime());
+    } catch(e) {
+      console.error(e);
+    }
+
+    if (!navigator.geolocation) {
+      geoIcon.textContent = '❌';
+      geoText.textContent = 'Geolocation is not supported by your browser.';
+      showToast('Geolocation is not supported by your browser.', 'error');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        currentGeoLat = position.coords.latitude;
+        currentGeoLng = position.coords.longitude;
+        currentGeoAcc = position.coords.accuracy;
+
+        if (currentGeoAcc > 10000) {
+            geoIcon.textContent = '⚠️';
+            geoText.innerHTML = `<span style="color:var(--danger)">GPS signal too weak (Accuracy: ${Math.round(currentGeoAcc)}m)</span>`;
+            btn.disabled = false;
+            showToast('GPS signal too weak. Please move to a better location.', 'error');
+            return;
+        }
+
+        if (officeLocation) {
+          const distance = calculateHaversineDistance(currentGeoLat, currentGeoLng, officeLocation.latitude, officeLocation.longitude);
+          if (distance > officeLocation.radiusMeters) {
+            geoIcon.textContent = '🚫';
+            geoText.innerHTML = `<span style="color:var(--danger)">Too far! You are ${Math.round(distance)}m away (Max: ${officeLocation.radiusMeters}m)</span>`;
+            btn.disabled = false;
+            showToast('You are too far from the office to clock in.', 'error');
+            return;
+          } else {
+            geoIcon.textContent = '✅';
+            geoText.innerHTML = `<span style="color:var(--success)">Location verified (${Math.round(distance)}m away)</span>`;
+          }
+        }
+
+        btn.disabled = false;
+        
+        openModal('modal-webcam');
+        await startWebcam();
+      },
+      (error) => {
+        geoIcon.textContent = '❌';
+        geoText.innerHTML = '<span style="color:var(--danger)">Location access denied</span>';
+        btn.disabled = false;
+        let errMsg = 'Failed to get location.';
+        if (error.code === error.PERMISSION_DENIED) errMsg = 'Please allow location access in your browser to clock in.';
+        showToast(errMsg, 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  } else if (!clockedOut) {
+    if (!confirm('Are you sure you want to clock out?')) return;
+    const data = await api.post('/api/student/clock-out', {});
+    if (!data) return;
+    if (data.error) { showToast(data.error, 'error'); return; }
+    showToast(data.message, 'success');
+    clockedOut = true;
+    updateClockButton();
+    loadAttendanceLogs();
+  }
+}
+
+async function startWebcam() {
+  try {
+    webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    document.getElementById('webcam-video').srcObject = webcamStream;
+  } catch (e) {
+    showToast('Camera access denied. Please allow camera access.', 'error');
+    closeModal('modal-webcam');
+  }
+}
+
+function stopWebcam() {
+  if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); webcamStream = null; }
+}
+
+async function captureAndClockIn() {
+  const video  = document.getElementById('webcam-video');
+  const canvas = document.getElementById('webcam-canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  capturedPhoto = canvas.toDataURL('image/jpeg', 0.85);
+  stopWebcam();
+  closeModal('modal-webcam');
+
+  const data = await api.post('/api/student/clock-in', { 
+      photo: capturedPhoto,
+      latitude: currentGeoLat,
+      longitude: currentGeoLng,
+      accuracy: currentGeoAcc
+  });
+  if (!data) return;
+  if (data.error) { showToast(data.error, 'error'); if (data.journalPending) setTimeout(()=>window.location.href='/student/journal.html',2500); return; }
+  showToast(data.message, 'success');
+  clockedIn = true;
+  document.getElementById('geo-status-wrap').style.display = 'none';
+  updateClockButton();
+  loadAttendanceLogs();
+}
+
+function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3;
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c;
+}
+
+async function loadAttendanceLogs() {
+  const logs = await api.get('/api/student/attendance-logs');
+  const tbody = document.getElementById('attendance-tbody');
+  if (!logs || !logs.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No attendance records yet.</td></tr>'; return; }
+  tbody.innerHTML = logs.map(l => `
+    <tr>
+      <td>${new Date(l.date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}</td>
+      <td>${l.clockIn ? new Date(l.clockIn).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true}) : '—'}</td>
+      <td>${l.clockOut ? new Date(l.clockOut).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true}) : '—'}</td>
+      <td>${l.hours ? formatHours(l.hours) + ' hrs' : '—'}</td>
+      <td>${getStatusBadge(l.status)}</td>
+      <td>${l.journalDone ? '<span class="badge badge-success">✓ Done</span>' : '<span class="badge badge-warning">Pending</span>'}</td>
+    </tr>`).join('');
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UNI-Versity | Confidential Records</title>
+<link rel="stylesheet" href="/css/global.css"/>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/assets/images/logo.png" alt="UNI-Versity" style="width:36px;height:36px;border-radius:10px;object-fit:cover;"/>
+      <div class="brand">UNI<span style="color:#A78BFA">—</span>Versity</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="/superadmin/dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a class="nav-item" href="/superadmin/masterlist.html"><span class="nav-icon">👥</span> Trainee Master List</a>
+      <a class="nav-item" href="/superadmin/attendance.html"><span class="nav-icon">✅</span> Attendance Requests</a>
+      <a class="nav-item" href="/superadmin/requests.html"><span class="nav-icon">📨</span> Admin Requests</a>
+      <a class="nav-item" href="/superadmin/sa-requests.html"><span class="nav-icon">🛡️</span> SA Applications</a>
+      <a class="nav-item active" href="/superadmin/confidential.html"><span class="nav-icon">🔒</span> Confidential Records</a>
+      <a class="nav-item" href="/superadmin/reports.html"><span class="nav-icon">📈</span> Overall Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar-placeholder" style="background:linear-gradient(135deg,#EF4444,#6C3CE1);">SA</div>
+        <div class="sidebar-user-info"><div class="name">Super Admin</div><div class="role">SuperAdmin</div></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm" style="margin-top:.75rem;">🚪 Log Out</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <button class="hamburger" id="hamburger">☰</button>
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>🔒 Confidential Records</h1>
+        <p>Edit student information. Sorted alphabetically.</p>
+      </div>
+      <div class="topbar-right"><button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">🌙</span></button><div id="datetime-display" class="datetime-badge"></div></div>
+    </div>
+    <div class="quote-banner mb-3">
+      <span class="quote-icon">🔒</span><p id="quote-text" class="quote-text">Loading quote...</p>
+    </div>
+
+
+    <div class="card fade-in mb-3">
+      <div class="card-header">
+        <div class="card-title">📍 Office Location Settings</div>
+        <button class="btn btn-secondary btn-sm" onclick="useMyLocation()">📍 Use My Current Location</button>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Set the global office location. Students must be within the specified radius to clock in.</p>
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="form-group">
+          <label class="form-label">Office Name</label>
+          <input type="text" class="form-control" id="office-name" placeholder="e.g. Main Campus">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Radius (meters)</label>
+          <input type="number" class="form-control" id="office-radius" min="10" placeholder="100">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="form-group">
+          <label class="form-label">Latitude</label>
+          <input type="number" class="form-control" id="office-lat" step="any" placeholder="14.12345">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Longitude</label>
+          <input type="number" class="form-control" id="office-lng" step="any" placeholder="121.12345">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-save-office" onclick="saveOfficeLocation()">💾 Save Location Settings</button>
+    </div>
+
+
+    <div class="card-title mb-1">Students</div>
+
+    <div style="display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center;">
+      <div class="search-bar" style="max-width:400px;flex:1;">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="conf-search" placeholder="Search student name or ID..." oninput="searchConfidential(this.value)"/>
+      </div>
+      <span class="badge badge-danger">SuperAdmin Only</span>
+    </div>
+
+    <div id="conf-list" style="display:flex;flex-direction:column;gap:.75rem;"></div>
+  </main>
+</div>
+
+
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Student Record</div>
+      <div class="modal-close" onclick="closeModal('modal-edit')">✕</div>
+    </div>
+    <form id="edit-form" onsubmit="saveEdit(event)" style="display:flex;flex-direction:column;gap:1rem;">
+      <input type="hidden" id="edit-id"/>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Full Name</label><input class="form-control" id="edit-name" type="text" required/></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="edit-email" type="email" required/></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">ID Number</label><input class="form-control" id="edit-id-number" type="text"/></div>
+        <div class="form-group"><label class="form-label">Program</label><input class="form-control" id="edit-program" type="text" placeholder="e.g. BSIT"/></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Section</label>
+          <select class="form-control" id="edit-section">
+            <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Required Hours</label><input class="form-control" id="edit-hours" type="number" min="1" required/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="edit-phone" type="tel"/></div>
+      <button type="submit" class="btn btn-primary" id="edit-submit-btn">💾 Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+let confSearch = '';
+
+async function loadOfficeSettings() {
+  const settings = await api.get('/api/superadmin/office-settings');
+  if (settings) {
+    document.getElementById('office-name').value = settings.officeName || '';
+    document.getElementById('office-lat').value = settings.latitude || '';
+    document.getElementById('office-lng').value = settings.longitude || '';
+    document.getElementById('office-radius').value = settings.radiusMeters || 100;
+  }
+}
+
+function useMyLocation() {
+  const btn = event.target;
+  btn.textContent = '⏳ Requesting...';
+  btn.disabled = true;
+
+  if (!navigator.geolocation) {
+    showToast('Geolocation is not supported by your browser.', 'error');
+    btn.textContent = '📍 Use My Current Location';
+    btn.disabled = false;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      document.getElementById('office-lat').value = position.coords.latitude;
+      document.getElementById('office-lng').value = position.coords.longitude;
+      showToast('Coordinates captured from your location.', 'success');
+      btn.textContent = '📍 Use My Current Location';
+      btn.disabled = false;
+    },
+    (error) => {
+      showToast('Failed to get location. Please allow location access.', 'error');
+      btn.textContent = '📍 Use My Current Location';
+      btn.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+async function saveOfficeLocation() {
+  const btn = document.getElementById('btn-save-office');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  const data = await api.put('/api/superadmin/office-settings', {
+    officeName: document.getElementById('office-name').value,
+    latitude: parseFloat(document.getElementById('office-lat').value),
+    longitude: parseFloat(document.getElementById('office-lng').value),
+    radiusMeters: parseInt(document.getElementById('office-radius').value)
+  });
+
+  btn.textContent = '💾 Save Location Settings'; btn.disabled = false;
+
+  if (!data) return;
+  if (data.error) { showToast(data.error, 'error'); return; }
+  showToast(data.message, 'success');
+}
+
+async function loadConfidential() {
+  const params = confSearch ? `?search=${encodeURIComponent(confSearch)}` : '';
+  const list = await api.get('/api/superadmin/confidential/students' + params);
+  const container = document.getElementById('conf-list');
+  if (!list || !list.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔒</div><p>No students found.</p></div>';
+    return;
+  }
+  container.innerHTML = list.map(s => `
+    <div class="card fade-in" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem;">
+          ${renderAvatar(s.photo, s.name, 'avatar-sm')}
+          <div>
+            <div class="font-bold">${s.name}</div>
+            <div class="text-xs text-muted">${s.email} • ${s.idNumber || '—'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:1rem;font-size:.8rem;color:var(--text-muted);flex-wrap:wrap;">
+          <span>🎓 ${s.program || '—'} · ${s.section ? '4-'+s.section : '—'}</span>
+          <span>🏫 ${s.school}</span>
+          <span>⏱ ${s.completedHours}/${s.requiredHours} hrs</span>
+          <span>${getStatusBadge(s.status)}</span>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openEdit(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏️ Edit</button>
+    </div>`).join('');
+}
+
+function searchConfidential(q) {
+  confSearch = q;
+  clearTimeout(window._ct);
+  window._ct = setTimeout(loadConfidential, 400);
+}
+
+function openEdit(s) {
+  document.getElementById('edit-id').value         = s.id;
+  document.getElementById('edit-name').value       = s.name;
+  document.getElementById('edit-email').value      = s.email;
+  document.getElementById('edit-id-number').value  = s.idNumber || '';
+  document.getElementById('edit-program').value    = s.program || '';
+  document.getElementById('edit-section').value    = s.section || 'A';
+  document.getElementById('edit-hours').value      = s.requiredHours;
+  document.getElementById('edit-phone').value      = s.phone || '';
+  openModal('modal-edit');
+}
+
+async function saveEdit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('edit-submit-btn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+  const id = document.getElementById('edit-id').value;
+  const data = await api.put(`/api/superadmin/confidential/students/${id}`, {
+    fullName:      document.getElementById('edit-name').value,
+    email:         document.getElementById('edit-email').value,
+    idNumber:      document.getElementById('edit-id-number').value,
+    program:       document.getElementById('edit-program').value,
+    section:       document.getElementById('edit-section').value,
+    requiredHours: parseFloat(document.getElementById('edit-hours').value),
+    phone:         document.getElementById('edit-phone').value,
+  });
+  btn.textContent = '💾 Save Changes'; btn.disabled = false;
+  if (!data) return;
+  if (data.error) { showToast(data.error, 'error'); return; }
+  showToast(data.message, 'success');
+  closeModal('modal-edit');
+  loadConfidential();
+}
+
+loadConfidential();
+loadOfficeSettings();
+</script>
+</body>
+</html>

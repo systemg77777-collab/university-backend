@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UNI-Versity | SA Master List</title>
+<link rel="stylesheet" href="/css/global.css"/>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/assets/images/logo.png" alt="UNI-Versity" style="width:36px;height:36px;border-radius:10px;object-fit:cover;"/>
+      <div class="brand">UNI<span style="color:#A78BFA">—</span>Versity</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="/superadmin/dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a class="nav-item active" href="/superadmin/masterlist.html"><span class="nav-icon">👥</span> Trainee Master List</a>
+      <a class="nav-item" href="/superadmin/attendance.html"><span class="nav-icon">✅</span> Attendance Requests</a>
+      <a class="nav-item" href="/superadmin/requests.html"><span class="nav-icon">📨</span> Admin Requests</a>
+      <a class="nav-item" href="/superadmin/sa-requests.html"><span class="nav-icon">🛡️</span> SA Applications</a>
+      <a class="nav-item" href="/superadmin/confidential.html"><span class="nav-icon">🔒</span> Confidential Records</a>
+      <a class="nav-item" href="/superadmin/reports.html"><span class="nav-icon">📈</span> Overall Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar-placeholder" style="background:linear-gradient(135deg,#EF4444,#6C3CE1);">SA</div>
+        <div class="sidebar-user-info"><div class="name">Super Admin</div><div class="role">SuperAdmin</div></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm" style="margin-top:.75rem;">🚪 Log Out</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <button class="hamburger" id="hamburger">☰</button>
+    <div class="topbar">
+      <div class="topbar-left"><h1>👥 Trainee Master List</h1><p>All registered OJT trainees.</p></div>
+      <div class="topbar-right"><button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">🌙</span></button><div id="datetime-display" class="datetime-badge"></div></div>
+    </div>
+    <div class="quote-banner mb-3"><span class="quote-icon">💡</span><p id="quote-text" class="quote-text">Loading quote...</p></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
+      <div class="filter-tabs" id="filter-tabs">
+        <div class="filter-tab active" onclick="setFilter('',this)">All</div>
+        <div class="filter-tab" onclick="setFilter('ACTIVE',this)">Active</div>
+        <div class="filter-tab" onclick="setFilter('INACTIVE',this)">Inactive</div>
+        <div class="filter-tab" onclick="setFilter('COMPLETED',this)">Completed</div>
+      </div>
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="ml-search" placeholder="Search name or ID..." oninput="searchMasterList(this.value)"/>
+      </div>
+    </div>
+    <div id="trainee-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;"></div>
+  </main>
+</div>
+<script src="/js/utils.js"></script>
+<script>
+let mlFilter = '', mlSearch = '';
+async function loadMasterList() {
+  const params = new URLSearchParams();
+  if (mlFilter) params.set('status', mlFilter);
+  if (mlSearch) params.set('search', mlSearch);
+  const students = await api.get('/api/admin/students?' + params);
+  const grid = document.getElementById('trainee-grid');
+  if (!students || !students.length) { grid.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>No trainees found.</p></div>'; return; }
+  grid.innerHTML = students.map(s => `
+    <div class="card fade-in">
+      <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1rem;">
+        ${renderAvatar(s.photo, s.name, 'avatar-lg')}
+        <div>
+          <div class="font-bold" style="font-size:1rem;">${s.name}</div>
+          <div>${s.isOnline ? getStatusBadge('ONLINE') : getStatusBadge('OFFLINE')}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;font-size:.82rem;color:var(--text-muted);margin-bottom:1rem;">
+        <div>📧 ${s.email}</div>
+        ${s.phone ? `<div>📱 ${s.phone}</div>` : ''}
+        <div>🎓 ${s.program || '—'}</div>
+        <div>🏫 ${s.school}</div>
+      </div>
+      <div class="progress-wrap mb-1">
+        <div class="progress-label"><span>${formatHours(s.completedHours)} hrs done</span><span>${formatHours(s.requiredHours)} hrs goal</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(s.progress,100)}%"></div></div>
+      </div>
+      <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);font-size:.75rem;color:var(--text-dim);">
+        📅 Started: ${s.startDate ? new Date(s.startDate).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : '—'}
+      </div>
+      <div style="margin-top:.5rem;">${getStatusBadge(s.status)}</div>
+    </div>`).join('');
+}
+function setFilter(f,el) { mlFilter=f; document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); loadMasterList(); }
+function searchMasterList(q) { mlSearch=q; clearTimeout(window._m); window._m=setTimeout(loadMasterList,400); }
+loadMasterList();
+</script>
+</body>
+</html>

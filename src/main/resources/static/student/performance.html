@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UNI-Versity | Performance</title>
+<link rel="stylesheet" href="/css/global.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/assets/images/logo.png" alt="UNI-Versity" style="width:36px;height:36px;border-radius:10px;object-fit:cover;"/>
+      <div class="brand">UNI<span style="color:#A78BFA">–</span>Versity</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="/student/dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a class="nav-item" href="/student/journal.html"><span class="nav-icon">📓</span> Daily Journal</a>
+      <a class="nav-item active" href="/student/performance.html"><span class="nav-icon">📊</span> Performance</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar-placeholder" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info"><div class="name" id="sidebar-name">Loading...</div><div class="role">OJT Student</div></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm" style="margin-top:.75rem;">🚪 Log Out</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <button class="hamburger" id="hamburger">☰</button>
+    <div class="topbar">
+      <div class="topbar-left"><h1>📊 Performance</h1><p>Track your weekly and monthly OJT progress.</p></div>
+      <div class="topbar-right"><button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">??</span></button><div id="datetime-display" class="datetime-badge"></div></div>
+    </div>
+    <div class="quote-banner mb-3">
+      <span class="quote-icon">🏆</span>
+      <p id="quote-text" class="quote-text">Loading quote...</p>
+    </div>
+
+
+    <div class="stats-grid mb-3">
+      <div class="stat-card fade-in">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-value" id="stat-completed">0</div>
+        <div class="stat-label">Hours Completed</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value" id="stat-required">0</div>
+        <div class="stat-label">Hours Required</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-icon">📈</div>
+        <div class="stat-value" id="stat-progress">0%</div>
+        <div class="stat-label">Overall Progress</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-value" id="stat-lates">0</div>
+        <div class="stat-label">Lates This Week</div>
+      </div>
+    </div>
+
+
+    <div class="card mb-3 fade-in">
+      <div class="card-header"><div class="card-title">Overall OJT Progress</div><span id="overall-pct" class="badge badge-success">0%</span></div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>0 hrs</span><span id="overall-goal">0 hrs goal</span></div>
+        <div class="progress-bar" style="height:14px;"><div class="progress-fill" id="overall-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+
+    <div class="grid-2 mb-3">
+      <div class="card fade-in">
+        <div class="card-header"><div class="card-title">📅 Weekly Hours (Last 7 Days)</div></div>
+        <canvas id="chart-weekly" height="200"></canvas>
+      </div>
+      <div class="card fade-in">
+        <div class="card-header"><div class="card-title">📆 Monthly Hours (By Week)</div></div>
+        <canvas id="chart-monthly" height="200"></canvas>
+      </div>
+    </div>
+
+
+    <div class="card fade-in">
+      <div class="card-header"><div class="card-title">💬 Performance Summary</div></div>
+      <p id="perf-summary" style="font-size:.9rem;line-height:1.8;color:var(--text-muted);">Loading your performance summary...</p>
+    </div>
+  </main>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+async function loadPerformance() {
+  const profile = await api.get('/api/student/profile');
+  if (profile) {
+    document.getElementById('sidebar-name').textContent = profile.name;
+    if (profile.photo) {
+      document.getElementById('sidebar-avatar').outerHTML = `<img src="/uploads/${profile.photo}" class="avatar" alt="Profile"/>`;
+    } else {
+      document.getElementById('sidebar-avatar').textContent = getInitials(profile.name);
+    }
+  }
+
+  const data = await api.get('/api/student/performance');
+  if (!data) return;
+
+  document.getElementById('stat-completed').textContent = formatHours(data.completedHours);
+  document.getElementById('stat-required').textContent  = formatHours(data.requiredHours);
+  document.getElementById('stat-progress').textContent  = Math.round(data.progress) + '%';
+  document.getElementById('stat-lates').textContent     = data.thisWeekLates || 0;
+
+  document.getElementById('overall-pct').textContent   = Math.round(data.progress) + '%';
+  document.getElementById('overall-goal').textContent  = formatHours(data.requiredHours) + ' hrs goal';
+  animateProgressBar(document.getElementById('overall-fill'), data.progress);
+
+  buildSummary(data);
+  buildWeeklyChart(data.weeklyHours);
+  buildMonthlyChart(data.monthlyHours);
+}
+
+function buildSummary(data) {
+  const lates = data.thisWeekLates || 0;
+  const pct   = Math.round(data.progress);
+  let msg = '';
+  if (pct >= 100)      msg = `🎓 Congratulations! You've completed your required OJT hours! Don't forget to finish all your daily journals to be marked COMPLETED.`;
+  else if (pct >= 75)  msg = `🔥 You're almost there! ${Math.round(data.requiredHours - data.completedHours)} hours left. Keep pushing!`;
+  else if (pct >= 50)  msg = `💪 Halfway through! You've logged ${formatHours(data.completedHours)} hours. Stay consistent and you'll finish strong!`;
+  else if (pct >= 25)  msg = `📈 Good start! You're at ${pct}%. Build that momentum and stay committed to your daily schedule.`;
+  else                 msg = `🌱 You're just getting started! Every hour counts. Clock in regularly and fill your journals!`;
+
+  if (lates > 0) msg += ` You have ${lates} late${lates > 1 ? 's' : ''} this week — pasok pasok din pag may time ha :)`;
+  document.getElementById('perf-summary').textContent = msg;
+}
+
+function buildWeeklyChart(weeklyHours) {
+  const ctx = document.getElementById('chart-weekly').getContext('2d');
+  const labels = Object.keys(weeklyHours).map(d => new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric'}));
+  const values = Object.values(weeklyHours);
+  const colors = getChartColors();
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Hours Worked',
+        data: values,
+        borderColor: '#6C3CE1',
+        backgroundColor: chartGradient(ctx),
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#A78BFA',
+        pointRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: colors.text } } },
+      scales: {
+        x: { ticks: { color: colors.text }, grid: { color: colors.grid } },
+        y: { ticks: { color: colors.text }, grid: { color: colors.grid }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function buildMonthlyChart(monthlyHours) {
+  const ctx = document.getElementById('chart-monthly').getContext('2d');
+  const colors = getChartColors();
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(monthlyHours),
+      datasets: [{
+        label: 'Total Hours',
+        data: Object.values(monthlyHours),
+        backgroundColor: ['rgba(108,60,225,0.7)','rgba(167,139,250,0.7)','rgba(56,189,248,0.7)','rgba(34,197,94,0.7)'],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: colors.text } } },
+      scales: {
+        x: { ticks: { color: colors.text }, grid: { color: colors.grid } },
+        y: { ticks: { color: colors.text }, grid: { color: colors.grid }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+loadPerformance();
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UNI-Versity | Admin Dashboard</title>
+<link rel="stylesheet" href="/css/global.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/assets/images/logo.png" alt="UNI-Versity" style="width:36px;height:36px;border-radius:10px;object-fit:cover;"/>
+      <div class="brand">UNI<span style="color:#A78BFA">–</span>Versity</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" href="/admin/dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a class="nav-item" href="/admin/masterlist.html"><span class="nav-icon">👥</span> Trainee Master List</a>
+      <a class="nav-item" href="/admin/attendance.html">
+        <span class="nav-icon">✅</span> Attendance Requests
+        <span class="nav-badge" id="pending-badge">0</span>
+      </a>
+      <a class="nav-item" href="/admin/requests.html"><span class="nav-icon">📨</span> Admin Requests<span class="nav-badge" id="admin-req-badge">0</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar-placeholder" style="background:linear-gradient(135deg,#F59E0B,#EF4444);">A</div>
+        <div class="sidebar-user-info"><div class="name">Administrator</div><div class="role">Admin</div></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm" style="margin-top:.75rem;">🚪 Log Out</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <button class="hamburger" id="hamburger">☰</button>
+    <div class="topbar">
+      <div class="topbar-left"><h1>Admin Dashboard</h1><p>Overview of all OJT trainees and system activity.</p></div>
+      <div class="topbar-right"><button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">??</span></button><div id="datetime-display" class="datetime-badge"></div></div>
+    </div>
+    <div class="quote-banner mb-3">
+      <span class="quote-icon">🎯</span>
+      <p id="quote-text" class="quote-text">Loading quote...</p>
+    </div>
+
+
+    <div class="stats-grid mb-3">
+      <div class="stat-card fade-in">
+        <div class="stat-icon">🎓</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total Interns</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-icon">🟢</div>
+        <div class="stat-value" id="stat-active">—%</div>
+        <div class="stat-label">Active Today</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-value" id="stat-pending">—</div>
+        <div class="stat-label">Pending Attendance</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-icon">📨</div>
+        <div class="stat-value" id="stat-admin-req">—</div>
+        <div class="stat-label">Admin Requests</div>
+      </div>
+    </div>
+
+
+    <div class="card fade-in">
+      <div class="card-header">
+        <div class="card-title">👥 Student Overview</div>
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="student-search" placeholder="Search name or ID..." oninput="searchStudents(this.value)"/>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Student</th><th>Program</th><th>Status</th><th>Hours</th><th>Action</th></tr></thead>
+          <tbody id="students-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;">
+        <button class="btn btn-secondary btn-sm" onclick="changePage(-1)">← Prev</button>
+        <span id="page-info" class="text-sm" style="align-self:center;color:var(--text-muted);">Page 1</span>
+        <button class="btn btn-secondary btn-sm" onclick="changePage(1)">Next →</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<div class="modal-overlay" id="modal-log">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title">📋 Student Log</div>
+      <div class="modal-close" onclick="closeModal('modal-log')">✕</div>
+    </div>
+    <div id="modal-log-content"></div>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+let currentPage = 0;
+let searchQuery = '';
+
+async function loadDashboard() {
+  const stats = await api.get('/api/admin/dashboard-stats');
+  if (stats) {
+    document.getElementById('stat-total').textContent   = stats.totalInterns;
+    document.getElementById('stat-active').textContent  = Math.round(stats.activeToday) + '%';
+    document.getElementById('stat-pending').textContent = stats.pendingAttendance;
+    document.getElementById('stat-admin-req').textContent = stats.pendingAdminRequests;
+    document.getElementById('pending-badge').textContent  = stats.pendingAttendance || '';
+    document.getElementById('admin-req-badge').textContent = stats.pendingAdminRequests || '';
+  }
+  loadStudents();
+}
+
+async function loadStudents() {
+  const params = new URLSearchParams({ page: currentPage });
+  if (searchQuery) params.set('search', searchQuery);
+  const students = await api.get('/api/admin/students?' + params);
+  const tbody = document.getElementById('students-tbody');
+  if (!students || !students.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No students found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = students.map(s => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:.75rem;">
+          ${renderAvatar(s.photo, s.name, 'avatar-sm')}
+          <div>
+            <div class="font-bold text-sm">${s.name}</div>
+            <div class="text-xs text-muted">${s.idNumber || s.email}</div>
+          </div>
+        </div>
+      </td>
+      <td class="text-sm">${s.program || s.school || '—'}</td>
+      <td>${s.isOnline ? getStatusBadge('ONLINE') : getStatusBadge('OFFLINE')}</td>
+      <td>
+        <div class="text-sm font-bold">${formatHours(s.completedHours)} / ${formatHours(s.requiredHours)}</div>
+        <div class="progress-bar" style="margin-top:.3rem;height:5px;"><div class="progress-fill" style="width:${Math.min(s.progress,100)}%"></div></div>
+      </td>
+      <td><button class="btn btn-secondary btn-sm" onclick="viewStudentLog(${s.id},'${s.name}')">View Log</button></td>
+    </tr>`).join('');
+  document.getElementById('page-info').textContent = `Page ${currentPage + 1}`;
+}
+
+function searchStudents(q) {
+  searchQuery = q; currentPage = 0;
+  clearTimeout(window._searchTimer);
+  window._searchTimer = setTimeout(loadStudents, 400);
+}
+
+function changePage(dir) {
+  currentPage = Math.max(0, currentPage + dir);
+  loadStudents();
+}
+
+async function viewStudentLog(id, name) {
+  document.getElementById('modal-log-content').innerHTML = '<p style="text-align:center;color:var(--text-muted);">Loading...</p>';
+  openModal('modal-log');
+  const logs = await api.get(`/api/admin/students/${id}/logs`);
+  if (!logs) return;
+  document.querySelector('#modal-log .modal-title').textContent = `📋 ${name}'s Attendance Log`;
+  document.getElementById('modal-log-content').innerHTML = logs.length ? `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead>
+        <tbody>${logs.map(l => `
+          <tr>
+            <td class="text-sm">${new Date(l.date).toLocaleDateString('en-PH',{month:'short',day:'numeric'})}</td>
+            <td class="text-sm">${l.clockIn ? new Date(l.clockIn).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true}) : '—'}</td>
+            <td class="text-sm">${l.clockOut ? new Date(l.clockOut).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true}) : '—'}</td>
+            <td class="text-sm">${l.hours ? formatHours(l.hours) + ' hrs' : '—'}</td>
+            <td>${getStatusBadge(l.status)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '<p style="text-align:center;color:var(--text-muted);">No logs yet.</p>';
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

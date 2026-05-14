@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UNI-Versity OJT System | Login</title>
+<meta name="description" content="UNI-Versity OJT Management System — Track, manage, and excel in your On-the-Job Training."/>
+<link rel="stylesheet" href="/css/global.css"/>
+<link rel="stylesheet" href="/css/auth.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="auth-body">
+<div id="toast-container"></div>
+
+
+<canvas id="particles-canvas"></canvas>
+
+
+<div class="auth-wrapper fade-in">
+  <button class="theme-toggle auth-theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">🌙</span></button>
+
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="auth-logo-wrap">
+        <img src="/assets/images/logo.png" alt="UNI-Versity Logo"/>
+      </div>
+      <div>
+        <h1 class="auth-brand-name">UNI<span>–</span>Versity</h1>
+        <p class="auth-brand-sub">OJT Management System</p>
+      </div>
+    </div>
+    <div class="auth-tagline">
+      <h2>Track. Learn.<br/>Grow.</h2>
+      <p>Your complete On-the-Job Training companion. Log hours, write journals, and monitor your progress — all in one place.</p>
+    </div>
+    <div class="auth-quote-box">
+      <span class="quote-icon">💡</span>
+      <p id="quote-text" class="quote-text">Loading quote...</p>
+    </div>
+    <div id="datetime-display" class="auth-datetime datetime-badge"></div>
+  </div>
+
+
+  <div class="auth-right">
+
+    <div id="step-choose" class="auth-panel active">
+      <h2 class="auth-title">Welcome Back</h2>
+      <p class="auth-desc">Sign in to your account or create a new one.</p>
+      <div class="auth-mode-grid">
+        <button class="auth-mode-btn" onclick="showPanel('panel-login')">
+          <span class="mode-icon">🔐</span>
+          <span class="mode-label">Log In</span>
+          <span class="mode-sub">Access your account</span>
+        </button>
+        <button class="auth-mode-btn" onclick="showPanel('panel-signup-choose')">
+          <span class="mode-icon">✨</span>
+          <span class="mode-label">Sign Up</span>
+          <span class="mode-sub">Create new account</span>
+        </button>
+      </div>
+
+    </div>
+
+
+    <div id="panel-login" class="auth-panel">
+      <button class="auth-back" onclick="showPanel('step-choose')">← Back</button>
+      <h2 class="auth-title">Log In</h2>
+      <p class="auth-desc">Enter your credentials to continue.</p>
+      <form id="form-login" class="auth-form">
+        <div class="form-group">
+          <label class="form-label">Email or ID Number</label>
+          <input id="login-email" class="form-control" type="text" placeholder="e.g. ADMIN001 or your email" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-pw-wrap">
+            <input id="login-password" class="form-control" type="password" placeholder="••••••••" required/>
+            <button type="button" class="pw-toggle" onclick="togglePw('login-password',this)">👁️</button>
+          </div>
+          <div style="text-align: right; margin-top: .5rem;">
+            <a href="#" onclick="showForgotPasswordModal()" style="font-size: .85rem; color: var(--primary);">Forgot Password?</a>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="login-btn">
+          Log In →
+        </button>
+      </form>
+      <p class="auth-switch">New here? <a href="#" onclick="showPanel('panel-signup-choose')">Create account</a></p>
+    </div>
+
+
+    <div id="panel-signup-choose" class="auth-panel">
+      <button class="auth-back" onclick="showPanel('step-choose')">← Back</button>
+      <h2 class="auth-title">Create Account</h2>
+      <p class="auth-desc">What kind of account would you like to create?</p>
+      <div class="auth-mode-grid">
+        <button class="auth-mode-btn" onclick="showPanel('panel-signup-student')">
+          <span class="mode-icon">🎓</span>
+          <span class="mode-label">OJT Student</span>
+          <span class="mode-sub">Track your internship</span>
+        </button>
+        <button class="auth-mode-btn" onclick="showPanel('panel-signup-admin')">
+          <span class="mode-icon">🛠️</span>
+          <span class="mode-label">Admin</span>
+          <span class="mode-sub">Requires approval</span>
+        </button>
+      </div>
+    </div>
+
+
+    <div id="panel-signup-student" class="auth-panel">
+      <button class="auth-back" onclick="showPanel('panel-signup-choose')">← Back</button>
+      <h2 class="auth-title">OJT Student Sign Up</h2>
+      <p class="auth-desc">Are you currently studying at UNI-Versity?</p>
+      <div class="auth-mode-grid">
+        <button class="auth-mode-btn" onclick="showStudentForm(true)">
+          <span class="mode-icon">🏫</span>
+          <span class="mode-label">Yes, I am</span>
+          <span class="mode-sub">UNI-Versity student</span>
+        </button>
+        <button class="auth-mode-btn" onclick="showStudentForm(false)">
+          <span class="mode-icon">🌐</span>
+          <span class="mode-label">No, I'm from<br/>another school</span>
+          <span class="mode-sub">External student</span>
+        </button>
+      </div>
+    </div>
+
+
+    <div id="panel-student-school" class="auth-panel">
+      <button class="auth-back" onclick="showPanel('panel-signup-student')">← Back</button>
+      <h2 class="auth-title">UNI-Versity Student</h2>
+      <form id="form-student-school" class="auth-form" onsubmit="submitStudentSchool(event)">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-control" name="fullName" type="text" placeholder="Juan Dela Cruz" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ID Number</label>
+            <input class="form-control" name="idNumber" type="text" placeholder="2023-12345" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-control" name="email" type="email" placeholder="you@email.com" required/>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Program</label>
+            <select class="form-control" name="program" required>
+              <option value="">Select Program</option>
+              <option>BSIT</option><option>BSCPE</option><option>BSCS</option>
+              <option>BSED</option><option>BEED</option><option>BSA</option>
+              <option>BSBA</option><option>BSTM</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Section</label>
+            <select class="form-control" name="section" required>
+              <option value="A">4 - A</option>
+              <option value="B">4 - B</option>
+              <option value="C">4 - C</option>
+              <option value="D">4 - D</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Required OJT Hours</label>
+          <input class="form-control" name="requiredHours" type="number" min="1" placeholder="e.g. 486 or 600" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">📸 2×2 Formal Photo (Profile Picture)</label>
+          <div class="profile-upload-preview" id="school-photo-preview"><span style="color:var(--text-dim);font-size:2rem">📷</span></div>
+          <input class="form-control" name="profilePhoto" type="file" accept="image/*" required onchange="previewProfilePhoto(this,'school-photo-preview')"/>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-control" name="password" type="password" placeholder="Min. 8 chars" required minlength="8"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <input class="form-control" name="confirmPassword" type="password" placeholder="Repeat password" required/>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Create Account 🎓</button>
+      </form>
+    </div>
+
+
+    <div id="panel-student-external" class="auth-panel">
+      <button class="auth-back" onclick="showPanel('panel-signup-student')">← Back</button>
+      <h2 class="auth-title">External Student</h2>
+      <form id="form-student-external" class="auth-form" enctype="multipart/form-data" onsubmit="submitStudentExternal(event)">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-control" name="fullName" type="text" placeholder="Juan Dela Cruz" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">School</label>
+            <input class="form-control" name="schoolName" type="text" placeholder="Your school name" required/>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-control" name="email" type="email" placeholder="you@email.com" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input class="form-control" name="phoneNumber" type="tel" placeholder="09XXXXXXXXX" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Year &amp; Section</label>
+          <select class="form-control" name="section" required>
+            <option value="A">4 - A</option><option value="B">4 - B</option>
+            <option value="C">4 - C</option><option value="D">4 - D</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Required OJT Hours</label>
+          <input class="form-control" name="requiredHours" type="number" min="1" placeholder="e.g. 486" required/>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">School ID — Front</label>
+            <input class="form-control" name="idFront" type="file" accept="image/*" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">School ID — Back</label>
+            <input class="form-control" name="idBack" type="file" accept="image/*" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">📸 2×2 Formal Photo (Profile Picture)</label>
+          <div class="profile-upload-preview" id="ext-photo-preview"><span style="color:var(--text-dim);font-size:2rem">📷</span></div>
+          <input class="form-control" name="profilePhoto" type="file" accept="image/*" required onchange="previewProfilePhoto(this,'ext-photo-preview')"/>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-control" name="password" type="password" placeholder="Min. 8 chars" required minlength="8"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <input class="form-control" name="confirmPassword" type="password" required/>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Create Account 🎓</button>
+      </form>
+    </div>
+
+
+    <div id="panel-signup-admin" class="auth-panel">
+      <button class="auth-back" onclick="showPanel('panel-signup-choose')">← Back</button>
+      <h2 class="auth-title">Admin Account Request</h2>
+      <p class="auth-desc">Your request will be reviewed by existing admins.</p>
+      <form id="form-admin" class="auth-form" onsubmit="submitAdminRequest(event)">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-control" name="fullName" type="text" placeholder="Your full name" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-control" name="email" type="email" placeholder="you@email.com" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ID Number</label>
+          <input class="form-control" name="idNumber" type="text" placeholder="Employee ID" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Institute</label>
+          <select class="form-control" name="institute" required>
+            <option value="">Select Institute</option>
+            <option value="INSTITUTE_OF_COMPUTING_STUDIES">Institute of Computing Studies</option>
+            <option value="INSTITUTE_OF_TEACHER_EDUCATION">Institute of Teacher Education</option>
+            <option value="INSTITUTE_OF_BUSINESS_ENTREPRENEURSHIP">Institute of Business Entrepreneurship</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-control" name="password" type="password" placeholder="Min. 8 chars" required minlength="8"/>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Submit Request 🛠️</button>
+      </form>
+    </div>
+
+
+    <div id="panel-superadmin-apply" class="auth-panel">
+      <div class="secret-badge">🔒 Confidential Application</div>
+      <h2 class="auth-title">SuperAdmin Application</h2>
+      <p class="auth-desc">Complete the form to apply for SuperAdmin access.</p>
+      <form id="form-superadmin" class="auth-form" onsubmit="submitSuperAdminApply(event)">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-control" name="fullName" type="text" placeholder="Full name" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-control" name="email" type="email" placeholder="Official email" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ID Number</label>
+          <input class="form-control" name="idNumber" type="text" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Position</label>
+          <input class="form-control" name="position" type="text" placeholder="e.g. Director of Education" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Institute</label>
+          <input class="form-control" name="institute" type="text" placeholder="Your institute" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason for applying</label>
+          <textarea class="form-control" name="reason" rows="3" placeholder="State your reason for SuperAdmin access..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Set Password</label>
+          <input class="form-control" name="password" type="password" required minlength="8"/>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Submit Application</button>
+      </form>
+    </div>
+
+
+    <div id="panel-success" class="auth-panel">
+      <div class="success-animation">
+        <div class="success-circle bounce-in">✓</div>
+        <h2 class="auth-title mt-2" id="success-title">Account Created!</h2>
+        <p class="auth-desc" id="success-msg">Your account has been created successfully.</p>
+        <button class="btn btn-primary btn-lg mt-2" onclick="showPanel('panel-login')">Log In Now →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="modal-forgot-password">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <div class="modal-title">Reset Password</div>
+      <div class="modal-close" onclick="closeModal('modal-forgot-password')">✕</div>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: .9rem;">Enter your email address and we'll send you a link to reset your password.</p>
+      <form id="form-forgot-password" onsubmit="submitForgotPassword(event)">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="forgot-password-email" class="form-control" required placeholder="juan@example.com" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="btn-forgot-password">Send Reset Link</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script src="/js/auth.js"></script>
+</body>
+</html>

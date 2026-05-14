@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UNI-Versity | Overall Reports</title>
+<link rel="stylesheet" href="/css/global.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/assets/images/logo.png" alt="UNI-Versity" style="width:36px;height:36px;border-radius:10px;object-fit:cover;"/>
+      <div class="brand">UNI<span style="color:#A78BFA">—</span>Versity</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="/superadmin/dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a class="nav-item" href="/superadmin/masterlist.html"><span class="nav-icon">👥</span> Trainee Master List</a>
+      <a class="nav-item" href="/superadmin/attendance.html"><span class="nav-icon">✅</span> Attendance Requests</a>
+      <a class="nav-item" href="/superadmin/requests.html"><span class="nav-icon">📨</span> Admin Requests</a>
+      <a class="nav-item" href="/superadmin/sa-requests.html"><span class="nav-icon">🛡️</span> SA Applications</a>
+      <a class="nav-item" href="/superadmin/confidential.html"><span class="nav-icon">🔒</span> Confidential Records</a>
+      <a class="nav-item active" href="/superadmin/reports.html"><span class="nav-icon">📈</span> Overall Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar-placeholder" style="background:linear-gradient(135deg,#EF4444,#6C3CE1);">SA</div>
+        <div class="sidebar-user-info"><div class="name">Super Admin</div><div class="role">SuperAdmin</div></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm" style="margin-top:.75rem;">🚪 Log Out</button>
+    </div>
+  </aside>
+  <main class="main-content">
+    <button class="hamburger" id="hamburger">☰</button>
+    <div class="topbar">
+      <div class="topbar-left"><h1>📈 Overall Reports</h1><p>System-wide performance and compliance overview.</p></div>
+      <div class="topbar-right">
+        <button class="btn btn-primary btn-sm" onclick="generateMonthlyPDF()" style="margin-right:.75rem;" title="Export Monthly Accomplishment Report">📄 Export PDF</button>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <div id="datetime-display" class="datetime-badge"></div>
+      </div>
+    </div>
+    <div class="quote-banner mb-3">
+      <span class="quote-icon">📊</span><p id="quote-text" class="quote-text">Loading quote...</p>
+    </div>
+    <div class="stats-grid mb-3">
+      <div class="stat-card fade-in"><div class="stat-icon">🎓</div><div class="stat-value" id="r-total">—</div><div class="stat-label">Total Trainees</div></div>
+      <div class="stat-card fade-in"><div class="stat-icon">✅</div><div class="stat-value" id="r-completed">—</div><div class="stat-label">Completed</div></div>
+      <div class="stat-card fade-in"><div class="stat-icon">🟢</div><div class="stat-value" id="r-active">—</div><div class="stat-label">Active</div></div>
+      <div class="stat-card fade-in"><div class="stat-icon">😴</div><div class="stat-value" id="r-inactive">—</div><div class="stat-label">Inactive</div></div>
+    </div>
+    <div class="grid-2 mb-3">
+      <div class="card fade-in">
+        <div class="card-header"><div class="card-title">📊 Compliance Rate This Week</div></div>
+        <div style="display:flex;align-items:center;justify-content:center;padding:1.5rem 0;">
+          <div style="position:relative;width:160px;height:160px;">
+            <canvas id="donut-chart"></canvas>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <div class="font-bold" style="font-size:2rem;" id="compliance-pct">—</div>
+              <div class="text-xs text-muted">compliant</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-header"><div class="card-title">📈 Average Progress</div></div>
+        <div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;padding:1.5rem 0;">
+          <div class="font-bold" style="font-size:2.5rem;" id="avg-progress">—%</div>
+          <div class="progress-bar" style="height:12px;width:100%;"><div class="progress-fill" id="avg-fill" style="width:0%"></div></div>
+          <div class="text-sm text-muted">Average OJT completion across all trainees</div>
+        </div>
+      </div>
+    </div>
+    <div class="card mb-3 fade-in">
+      <div class="card-header"><div class="card-title">📅 Weekly Hours by Trainee</div></div>
+      <div style="overflow-x:auto;"><canvas id="bar-chart" height="120"></canvas></div>
+    </div>
+    <div class="card fade-in" style="background:linear-gradient(135deg,rgba(108,60,225,0.1),rgba(56,189,248,0.05));border-color:rgba(108,60,225,0.25);">
+      <div class="card-header"><div class="card-title">💬 System Conclusion</div></div>
+      <p id="r-conclusion" style="font-size:.95rem;line-height:1.8;color:var(--text-muted);">Loading...</p>
+    </div>
+  </main>
+</div>
+<script src="/js/utils.js"></script>
+<script>
+let reportData = null;
+
+async function loadReports() {
+  const data = await api.get('/api/superadmin/reports/overview');
+  if (!data || data.error) { showToast('Failed to load reports.','error'); return; }
+  reportData = data;
+  document.getElementById('r-total').textContent     = data.total;
+  document.getElementById('r-completed').textContent = data.completed;
+  document.getElementById('r-active').textContent    = data.active;
+  document.getElementById('r-inactive').textContent  = data.inactive;
+  document.getElementById('compliance-pct').textContent = data.complianceRate + '%';
+  document.getElementById('avg-progress').textContent   = data.avgProgress + '%';
+  document.getElementById('r-conclusion').textContent   = data.conclusion;
+  animateProgressBar(document.getElementById('avg-fill'), data.avgProgress);
+  const dCtx = document.getElementById('donut-chart').getContext('2d');
+  new Chart(dCtx, {
+    type: 'doughnut',
+    data: { datasets: [{ data: [data.complianceRate, 100 - data.complianceRate], backgroundColor: ['#6C3CE1','rgba(255,255,255,0.08)'], borderWidth: 0 }] },
+    options: { cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { animateRotate: true } }
+  });
+  const weekly = data.weeklyHoursByStudent || {};
+  const names  = Object.keys(weekly).slice(0, 20);
+  const values = names.map(n => weekly[n]);
+  const bCtx   = document.getElementById('bar-chart').getContext('2d');
+  const colors = getChartColors();
+  new Chart(bCtx, {
+    type: 'bar',
+    data: { labels: names, datasets: [{ label: 'Hours This Week', data: values, backgroundColor: values.map(v => v > 0 ? 'rgba(108,60,225,0.7)' : 'rgba(239,68,68,0.4)'), borderRadius: 4 }] },
+    options: { responsive: true, plugins: { legend: { labels: { color: colors.text } } }, scales: { x: { ticks: { color: colors.text, maxRotation: 40 }, grid: { color: colors.grid } }, y: { ticks: { color: colors.text }, grid: { color: colors.grid }, beginAtZero: true } } }
+  });
+}
+
+function generateMonthlyPDF() {
+  if (!reportData) { showToast('Report data not yet loaded. Please wait.', 'warning'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const now     = new Date();
+  const monthYr = now.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
+  const genDate = now.toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const purple    = [108, 60, 225];
+  const darkBg    = [18, 18, 30];
+  const white     = [255, 255, 255];
+  const lightGray = [245, 245, 250];
+  doc.setFillColor(...darkBg);
+  doc.rect(0, 0, 210, 40, 'F');
+  doc.setFillColor(...purple);
+  doc.rect(0, 37, 210, 3, 'F');
+  doc.setTextColor(...white);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('UNI-Versity OJT Management System', 15, 16);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Monthly Accomplishment Report', 15, 25);
+  doc.setFontSize(9);
+  doc.setTextColor(180, 180, 210);
+  doc.text(`Period: ${monthYr}   |   Generated: ${genDate}`, 15, 33);
+  doc.setTextColor(50, 50, 70);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Summary Statistics', 15, 52);
+  doc.autoTable({
+    startY: 56,
+    head: [['Metric', 'Value']],
+    body: [['Total Trainees', reportData.total],['Active Trainees', reportData.active],['Completed Trainees', reportData.completed],['Inactive Trainees', reportData.inactive],['Weekly Compliance Rate', reportData.complianceRate + '%'],['Average OJT Progress', reportData.avgProgress + '%']],
+    styles: { fontSize: 10, cellPadding: 4 },
+    headStyles: { fillColor: purple, textColor: white, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: lightGray },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 90 }, 1: { cellWidth: 60 } },
+    margin: { left: 15, right: 15 },
+  });
+  const weekly = reportData.weeklyHoursByStudent || {};
+  const weeklyRows = Object.entries(weekly).map(([name, hrs], i) => [i + 1, name, parseFloat(hrs).toFixed(2) + ' hrs', hrs > 0 ? 'Active' : 'Absent']);
+  const afterStats = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(50, 50, 70);
+  doc.text('Weekly Hours by Trainee', 15, afterStats);
+  doc.autoTable({
+    startY: afterStats + 4,
+    head: [['#', 'Trainee Name', 'Hours This Week', 'Status']],
+    body: weeklyRows,
+    styles: { fontSize: 9, cellPadding: 3.5 },
+    headStyles: { fillColor: purple, textColor: white, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: lightGray },
+    columnStyles: { 0: { cellWidth: 12, halign: 'center' }, 1: { cellWidth: 85 }, 2: { cellWidth: 40, halign: 'center' }, 3: { cellWidth: 35, halign: 'center' } },
+    didDrawCell: (data) => {
+      if (data.column.index === 3 && data.section === 'body') {
+        const val = data.cell.raw;
+        if (val === 'Active') doc.setTextColor(34, 197, 94);
+        else doc.setTextColor(239, 68, 68);
+      }
+    },
+    margin: { left: 15, right: 15 },
+  });
+  const afterTable = doc.lastAutoTable.finalY + 10;
+  doc.setFillColor(...lightGray);
+  doc.roundedRect(15, afterTable, 180, 22, 3, 3, 'F');
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(80, 80, 100);
+  const lines = doc.splitTextToSize(reportData.conclusion, 170);
+  doc.text(lines, 20, afterTable + 8);
+  const pageH = doc.internal.pageSize.getHeight();
+  doc.setFillColor(...darkBg);
+  doc.rect(0, pageH - 12, 210, 12, 'F');
+  doc.setFontSize(8);
+  doc.setTextColor(160, 160, 190);
+  doc.setFont('helvetica', 'normal');
+  doc.text('UNI-Versity OJT System  |  Confidential — For Internal Use Only', 15, pageH - 4);
+  doc.text(`Page 1`, 195, pageH - 4, { align: 'right' });
+  const fileName = `OJT_Monthly_Report_${now.getFullYear()}_${String(now.getMonth()+1).padStart(2,'0')}.pdf`;
+  doc.save(fileName);
+  showToast('PDF report downloaded successfully!', 'success');
+}
+
+loadReports();
+</script>
+</body>
+</html>

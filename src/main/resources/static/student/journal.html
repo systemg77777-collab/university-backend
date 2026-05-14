@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UNI-Versity | Daily Journal</title>
+<link rel="stylesheet" href="/css/global.css"/>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/assets/images/logo.png" alt="UNI-Versity" style="width:36px;height:36px;border-radius:10px;object-fit:cover;"/>
+      <div class="brand">UNI<span style="color:#A78BFA">–</span>Versity</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" href="/student/dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a class="nav-item active" href="/student/journal.html"><span class="nav-icon">📓</span> Daily Journal</a>
+      <a class="nav-item" href="/student/performance.html"><span class="nav-icon">📊</span> Performance</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar-placeholder" id="sidebar-avatar">?</div>
+        <div class="sidebar-user-info"><div class="name" id="sidebar-name">Loading...</div><div class="role">OJT Student</div></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm" style="margin-top:.75rem;">🚪 Log Out</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <button class="hamburger" id="hamburger">☰</button>
+    <div class="topbar">
+      <div class="topbar-left"><h1>📓 Daily Journal</h1><p>Record your daily OJT activities and learnings.</p></div>
+      <div class="topbar-right"><button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">🌙</span></button><div id="datetime-display" class="datetime-badge"></div></div>
+    </div>
+    <div class="quote-banner mb-3">
+      <span class="quote-icon">✍️</span>
+      <p id="quote-text" class="quote-text">Loading quote...</p>
+    </div>
+
+
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:1.5rem;">
+
+
+      <div class="card fade-in" style="height:fit-content;">
+        <div class="card-header"><div class="card-title">Work Days</div></div>
+        <div id="workdays-list" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+      </div>
+
+
+      <div class="card fade-in fade-in-delay" id="journal-editor">
+        <div id="editor-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;color:var(--text-muted);text-align:center;">
+          <div style="font-size:3rem;opacity:.3;">📓</div>
+          <p style="margin-top:.75rem;">Select a work day to write your journal.</p>
+          <p class="text-xs" style="margin-top:.4rem;">You must complete journal entries in order.</p>
+        </div>
+        <form id="journal-form" style="display:none;flex-direction:column;gap:1.25rem;" onsubmit="submitJournal(event)">
+          <div>
+            <div class="card-title" id="journal-date-title">Entry for —</div>
+            <div class="card-subtitle">Fill all sections to mark this entry as complete.</div>
+          </div>
+          <input type="hidden" id="j-attendance-id"/>
+          <div class="form-group">
+            <label class="form-label">📋 Activities</label>
+            <textarea id="j-activities" class="form-control" rows="4" placeholder="What did you do today? List your tasks and activities..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">💡 Key Learnings</label>
+            <textarea id="j-learnings" class="form-control" rows="3" placeholder="What new things did you learn today?" required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">⚠️ Challenges</label>
+            <textarea id="j-challenges" class="form-control" rows="3" placeholder="What challenges did you face and how did you handle them?" required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">📸 Proof of Participation (POP Photo)</label>
+            <input id="j-pop" class="form-control" type="file" accept="image/*"/>
+            <div id="j-pop-preview" style="margin-top:.5rem;"></div>
+          </div>
+          <div style="display:flex;gap:.75rem;">
+            <button type="submit" class="btn btn-primary" id="journal-submit-btn">💾 Save Journal Entry</button>
+            <div id="j-status-badge"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+let allowedDays = [];
+let existingJournals = {};
+let selectedDay = null;
+
+async function loadJournalPage() {
+  const profile = await api.get('/api/student/profile');
+  if (!profile) return;
+  document.getElementById('sidebar-name').textContent = profile.name;
+  if (profile.photo) {
+    document.getElementById('sidebar-avatar').outerHTML = `<img src="/uploads/${profile.photo}" class="avatar" alt="Profile"/>`;
+  } else {
+    document.getElementById('sidebar-avatar').textContent = getInitials(profile.name);
+  }
+
+  allowedDays = await api.get('/api/student/journal/allowed-days') || [];
+  const journals = await api.get('/api/student/journals') || [];
+  journals.forEach(j => { existingJournals[j.attendanceId] = j; });
+
+  renderWorkDays();
+
+  if (allowedDays.length > 0) {
+    let indexToSelect = 0;
+    for (let i = 0; i < allowedDays.length; i++) {
+      const j = existingJournals[allowedDays[i].attendanceId];
+      if (!j || !j.completed) {
+        indexToSelect = i;
+        break;
+      }
+    }
+    selectDay(indexToSelect);
+  }
+}
+
+function renderWorkDays() {
+  const list = document.getElementById('workdays-list');
+  if (!allowedDays.length) {
+    list.innerHTML = '<p class="text-sm text-muted" style="padding:.5rem;">No work days yet.<br/>Clock in to get started!</p>';
+    return;
+  }
+  list.innerHTML = allowedDays.map((day, i) => {
+    const j = existingJournals[day.attendanceId];
+    const done = j && j.completed;
+    const unlocked = i === 0 || existingJournals[allowedDays[i-1].attendanceId]?.completed;
+    const dateStr = new Date(day.date + 'T00:00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+    return `<div class="workday-item ${done?'done':''} ${!unlocked?'locked':''}" onclick="${unlocked?`selectDay(${i})`:'showToast(\"Complete the previous journal first!\",\"warning\")'}">
+      <span>${done?'✅':(!unlocked?'🔒':'📝')}</span>
+      <div>
+        <div class="text-sm font-bold">${dateStr}</div>
+        <div class="text-xs text-muted">${done?'Completed':'Pending'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectDay(i) {
+  selectedDay = i;
+  const day = allowedDays[i];
+  const j   = existingJournals[day.attendanceId];
+  const dateStr = new Date(day.date + 'T00:00:00').toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  document.getElementById('editor-placeholder').style.display = 'none';
+  const form = document.getElementById('journal-form');
+  form.style.display = 'flex';
+
+  document.getElementById('journal-date-title').textContent = `Entry for ${dateStr}`;
+  document.getElementById('j-attendance-id').value = day.attendanceId;
+  document.getElementById('j-activities').value  = j?.activities || '';
+  document.getElementById('j-learnings').value   = j?.keyLearnings || '';
+  document.getElementById('j-challenges').value  = j?.challenges || '';
+  document.getElementById('j-status-badge').innerHTML = j?.completed
+    ? '<span class="badge badge-success">✅ Completed</span>'
+    : '<span class="badge badge-warning">Incomplete</span>';
+
+  if (j?.completed) {
+    document.getElementById('journal-submit-btn').textContent = '✏️ Update Entry';
+  } else {
+    document.getElementById('journal-submit-btn').textContent = '💾 Save Journal Entry';
+  }
+
+  if (j?.popPhoto) {
+    document.getElementById('j-pop-preview').innerHTML = `<img src="/${j.popPhoto}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);" alt="POP"/>`;
+  }
+
+  document.querySelectorAll('.workday-item').forEach((el,idx) => el.classList.toggle('selected', idx === i));
+}
+
+async function submitJournal(e) {
+  e.preventDefault();
+  const btn = document.getElementById('journal-submit-btn');
+  btn.textContent = 'Saving...'; btn.disabled = true;
+
+  const fd = new FormData();
+  fd.append('attendanceId', document.getElementById('j-attendance-id').value);
+  fd.append('activities',   document.getElementById('j-activities').value);
+  fd.append('keyLearnings', document.getElementById('j-learnings').value);
+  fd.append('challenges',   document.getElementById('j-challenges').value);
+  const pop = document.getElementById('j-pop').files[0];
+  if (pop) fd.append('popPhoto', pop);
+
+  const data = await api.postForm('/api/student/journal/save', fd);
+
+  btn.textContent = '💾 Save Journal Entry'; btn.disabled = false;
+  if (!data) return;
+  if (data.error) { showToast(data.error, 'error'); return; }
+  showToast(data.message, data.completed ? 'success' : 'info');
+  const journals = await api.get('/api/student/journals') || [];
+  existingJournals = {};
+  journals.forEach(j => { existingJournals[j.attendanceId] = j; });
+  renderWorkDays();
+  if (selectedDay !== null) selectDay(selectedDay);
+}
+
+document.getElementById('j-pop')?.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('j-pop-preview').innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--border);" alt="Preview"/>`;
+  };
+  reader.readAsDataURL(file);
+});
+
+
+
+loadJournalPage();
+</script>
+<style>
+.workday-item {
+  display:flex;align-items:center;gap:.6rem;padding:.65rem .75rem;
+  border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;
+  border:1px solid transparent;
+}
+.workday-item:hover:not(.locked) { background:rgba(108,60,225,.1);border-color:var(--border2); }
+.workday-item.selected { background:rgba(108,60,225,.15);border-color:var(--primary); }
+.workday-item.done { opacity:.75; }
+.workday-item.locked { cursor:not-allowed;opacity:.45; }
+</style>
+</body>
+</html>
