@@ -2,13 +2,6 @@
 -- UNI-Versity OJT System Database Schema
 -- MySQL 8.0+
 -- ============================================================
-
-CREATE DATABASE IF NOT EXISTS university_ojt
-    CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;
-
-USE university_ojt;
-
 -- ─── STUDENTS ─────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS students (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
