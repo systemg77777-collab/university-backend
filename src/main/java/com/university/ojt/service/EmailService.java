@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
+    @Autowired 
+    private EmailService emailService;
+    
     @Value("${app.resend.api-key}")
     private String apiKey;
 
