@@ -12,9 +12,7 @@
 <body class="auth-body">
 <div id="toast-container"></div>
 
-
 <canvas id="particles-canvas"></canvas>
-
 
 <div class="auth-wrapper fade-in">
   <button class="theme-toggle auth-theme-toggle" onclick="toggleTheme()" title="Toggle theme"><span class="theme-icon">🌙</span></button>
@@ -40,7 +38,6 @@
     <div id="datetime-display" class="auth-datetime datetime-badge"></div>
   </div>
 
-
   <div class="auth-right">
 
     <div id="step-choose" class="auth-panel active">
@@ -61,7 +58,6 @@
 
     </div>
 
-
     <div id="panel-login" class="auth-panel">
       <button class="auth-back" onclick="showPanel('step-choose')">← Back</button>
       <h2 class="auth-title">Log In</h2>
@@ -69,7 +65,7 @@
       <form id="form-login" class="auth-form">
         <div class="form-group">
           <label class="form-label">Email or ID Number</label>
-          <input id="login-email" class="form-control" type="text" placeholder="e.g. ADMIN001 or your email" required/>
+          <input id="login-email" class="form-control" type="text" placeholder="Email" required/>
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
@@ -88,7 +84,6 @@
       <p class="auth-switch">New here? <a href="#" onclick="showPanel('panel-signup-choose')">Create account</a></p>
     </div>
 
-
     <div id="panel-signup-choose" class="auth-panel">
       <button class="auth-back" onclick="showPanel('step-choose')">← Back</button>
       <h2 class="auth-title">Create Account</h2>
@@ -106,7 +101,6 @@
         </button>
       </div>
     </div>
-
 
     <div id="panel-signup-student" class="auth-panel">
       <button class="auth-back" onclick="showPanel('panel-signup-choose')">← Back</button>
@@ -134,11 +128,11 @@
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label">Full Name</label>
-            <input class="form-control" name="fullName" type="text" placeholder="Juan Dela Cruz" required/>
+            <input class="form-control" name="fullName" type="text" placeholder="Jose P. Lay" required/>
           </div>
           <div class="form-group">
             <label class="form-label">ID Number</label>
-            <input class="form-control" name="idNumber" type="text" placeholder="2023-12345" required/>
+            <input class="form-control" name="idNumber" type="text" placeholder="23-12345" required/>
           </div>
         </div>
         <div class="form-group">
@@ -188,7 +182,6 @@
       </form>
     </div>
 
-
     <div id="panel-student-external" class="auth-panel">
       <button class="auth-back" onclick="showPanel('panel-signup-student')">← Back</button>
       <h2 class="auth-title">External Student</h2>
@@ -210,7 +203,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">Phone Number</label>
-            <input class="form-control" name="phoneNumber" type="tel" placeholder="09XXXXXXXXX" required/>
+            <input class="form-control" name="phoneNumber" type="tel" placeholder="09*********" required/>
           </div>
         </div>
         <div class="form-group">
@@ -253,7 +246,6 @@
       </form>
     </div>
 
-
     <div id="panel-signup-admin" class="auth-panel">
       <button class="auth-back" onclick="showPanel('panel-signup-choose')">← Back</button>
       <h2 class="auth-title">Admin Account Request</h2>
@@ -287,7 +279,6 @@
         <button type="submit" class="btn btn-primary btn-full">Submit Request 🛠️</button>
       </form>
     </div>
-
 
     <div id="panel-superadmin-apply" class="auth-panel">
       <div class="secret-badge">🔒 Confidential Application</div>
@@ -326,7 +317,6 @@
       </form>
     </div>
 
-
     <div id="panel-success" class="auth-panel">
       <div class="success-animation">
         <div class="success-circle bounce-in">✓</div>
@@ -337,7 +327,6 @@
     </div>
   </div>
 </div>
-
 
 <div class="modal-overlay" id="modal-forgot-password">
   <div class="modal" style="max-width: 400px;">
