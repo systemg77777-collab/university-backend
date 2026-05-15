@@ -4,6 +4,7 @@ import com.university.ojt.model.*;
 import com.university.ojt.repository.*;
 import com.university.ojt.security.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
