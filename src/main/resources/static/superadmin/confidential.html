@@ -54,9 +54,13 @@
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Set the global office location. Students must be within the specified radius to clock in.</p>
       <div class="grid-2" style="margin-bottom:1rem;">
         <div class="form-group">
-          <label class="form-label">Office Name</label>
-          <input type="text" class="form-control" id="office-name" placeholder="e.g. Main Campus">
-        </div>
+      <label class="form-label">Office Name</label>
+      <div style="display: flex; gap: 8px;">
+          <input type="text" class="form-control" id="office-name" value="Colegio de Montalban, Rodriguez, Rizal" placeholder="e.g. Main Campus" style="flex: 1;">
+          <button type="button" class="btn btn-secondary" onclick="searchCoordinates()">🔍 Search</button>
+      </div>
+  </div>
+        
         <div class="form-group">
           <label class="form-label">Radius (meters)</label>
           <input type="number" class="form-control" id="office-radius" min="10" placeholder="100">
@@ -65,11 +69,11 @@
       <div class="grid-2" style="margin-bottom:1rem;">
         <div class="form-group">
           <label class="form-label">Latitude</label>
-          <input type="number" class="form-control" id="office-lat" step="any" placeholder="14.12345">
+          <input type="number" class="form-control" id="office-lat" step="any" placeholder="14.750545">
         </div>
         <div class="form-group">
           <label class="form-label">Longitude</label>
-          <input type="number" class="form-control" id="office-lng" step="any" placeholder="121.12345">
+          <input type="number" class="form-control" id="office-lng" step="any" placeholder="121.141626">
         </div>
       </div>
       <button class="btn btn-primary" id="btn-save-office" onclick="saveOfficeLocation()">💾 Save Location Settings</button>
@@ -123,6 +127,34 @@
 
 <script src="/js/utils.js"></script>
 <script>
+  async function searchCoordinates() {
+    const addressInput = document.getElementById('office-name').value;
+    
+    if (!addressInput) {
+        alert("Please enter a school or office name first!");
+        return;
+    }
+
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressInput)}`);
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+            const exactLat = data[0].lat;
+            const exactLng = data[0].lon;
+
+            document.getElementById('office-lat').value = exactLat;
+            document.getElementById('office-lng').value = exactLng;
+            console.log("Location updated successfully."); 
+        } else {
+            alert("Location not found. Try adding the city or province (e.g., 'Rodriguez, Rizal').");
+        }
+    } catch (error) {
+        console.error("Error fetching location:", error);
+        alert("Failed to connect to the map server.");
+    }
+}
+  
 let confSearch = '';
 
 async function loadOfficeSettings() {
