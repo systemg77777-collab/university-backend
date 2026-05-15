@@ -16,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
-
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
     @Autowired private StudentRepository studentRepo;
     @Autowired private AdminRepository adminRepo;
     @Autowired private SuperAdminRepository superAdminRepo;
@@ -223,7 +224,7 @@ public class AuthService {
         resetTokenRepo.save(resetToken);
 
 
-        String resetLink = "http://localhost:8080/reset-password.html?token=" + token;
+        String resetLink = frontendUrl + "/reset-password.html?token=" + token;
         emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
 
         result.put("success", true);
